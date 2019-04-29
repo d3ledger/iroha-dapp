@@ -1,0 +1,4 @@
+dependencies {
+    // IPJ
+    compile('com.github.hyperledger.iroha-java:client:4.1.0')
+}
