@@ -13,6 +13,8 @@ class DappApplication
 
 fun main(args: Array<String>) {
     val context = AnnotationConfigApplicationContext()
+    context.register(DappApplication::class.java)
+    context.refresh()
     GlobalScope.launch {
         context.getBean(DappService::class.java).init()
     }
