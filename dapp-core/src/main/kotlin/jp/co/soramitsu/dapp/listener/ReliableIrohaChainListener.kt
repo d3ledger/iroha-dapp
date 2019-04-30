@@ -4,6 +4,7 @@ import com.rabbitmq.client.BuiltinExchangeType
 import com.rabbitmq.client.ConnectionFactory
 import com.rabbitmq.client.Delivery
 import io.reactivex.Observable
+import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import iroha.protocol.BlockOuterClass
 import mu.KLogging
@@ -26,7 +27,7 @@ class ReliableIrohaChainListener(
     rmqExchange: String,
     private val irohaQueue: String,
     private val subscribe: (iroha.protocol.BlockOuterClass.Block) -> Unit,
-    private val consumerExecutorService: ExecutorService?
+    private val consumerExecutorService: ExecutorService
 ) : Closeable {
 
     constructor(
@@ -34,7 +35,7 @@ class ReliableIrohaChainListener(
         rmqPort: Int,
         rmqExchange: String,
         irohaQueue: String,
-        consumerExecutorService: ExecutorService?
+        consumerExecutorService: ExecutorService
     ) : this(rmqHost, rmqPort, rmqExchange, irohaQueue, { }, consumerExecutorService)
 
     private val factory = ConnectionFactory()
@@ -45,11 +46,7 @@ class ReliableIrohaChainListener(
     private val conn by lazy {
         factory.host = rmqHost
         factory.port = rmqPort
-        if (consumerExecutorService != null) {
-            factory.newConnection(consumerExecutorService)
-        } else {
-            factory.newConnection()
-        }
+        factory.newConnection(consumerExecutorService)
     }
 
     private val channel by lazy { conn.createChannel() }
@@ -84,7 +81,7 @@ class ReliableIrohaChainListener(
                 logger.info { "New Iroha block from RMQ arrived. Height ${block.blockV1.payload.height}" }
                 block
             }
-        obs.subscribe { block -> subscribe(block) }
+        obs.observeOn(Schedulers.from(consumerExecutorService)).subscribe { block -> subscribe(block) }
         consumerTag = channel.basicConsume(irohaQueue, true, deliverCallback, { _ -> })
 
         return obs
@@ -118,7 +115,7 @@ class ReliableIrohaChainListener(
         consumerTag?.let {
             channel.basicCancel(it)
         }
-        consumerExecutorService?.shutdownNow()
+        consumerExecutorService.shutdownNow()
     }
 
     /**

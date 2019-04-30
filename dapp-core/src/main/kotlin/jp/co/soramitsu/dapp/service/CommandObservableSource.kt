@@ -1,5 +1,6 @@
 package jp.co.soramitsu.dapp.service
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
@@ -17,7 +18,11 @@ class CommandObservableSource(
     private val chainListener: ReliableIrohaChainListener
 ) {
     private val commandsObservables: Map<CommandCase, PublishSubject<Commands.Command>>
-    private val scheduler = Schedulers.from(Executors.newSingleThreadExecutor())
+    private val scheduler = Schedulers.from(
+        Executors.newSingleThreadExecutor(
+            ThreadFactoryBuilder().setNameFormat("observable-source-%d").build()
+        )
+    )
 
     init {
         val obsMap = mutableMapOf<CommandCase, PublishSubject<Commands.Command>>()
@@ -28,7 +33,7 @@ class CommandObservableSource(
 
         chainListener
             .getBlockObservable()
-            .subscribeOn(scheduler)
+            .observeOn(scheduler)
             .subscribe { block ->
                 block.blockV1.payload.transactionsList.forEach { transaction ->
                     transaction.payload.reducedPayload.commandsList.forEach { command ->

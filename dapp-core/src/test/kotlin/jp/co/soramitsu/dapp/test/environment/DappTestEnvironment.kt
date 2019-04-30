@@ -1,6 +1,7 @@
 package jp.co.soramitsu.dapp.test.environment
 
 import com.google.common.io.Files
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import iroha.protocol.BlockOuterClass
 import jp.co.soramitsu.crypto.ed25519.Ed25519Sha3
 import jp.co.soramitsu.dapp.cache.DefaultCacheManager
@@ -30,6 +31,7 @@ import java.io.IOException
 import java.net.URI
 import java.nio.charset.Charset
 import java.util.*
+import java.util.concurrent.Executors
 import javax.xml.bind.DatatypeConverter
 
 
@@ -183,7 +185,9 @@ class DappTestEnvironment : Closeable {
                     rmqPort,
                     rmqExchange,
                     Random().nextLong().toString(),
-                    null
+                    Executors.newSingleThreadExecutor(
+                        ThreadFactoryBuilder().setNameFormat("chain-listener-%d").build()
+                    )
                 )
             ),
             DefaultCacheManager()
