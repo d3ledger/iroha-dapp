@@ -37,7 +37,7 @@ dependencies {
     testCompile('com.github.hyperledger.iroha-java:testcontainers:4.1.0')
     // Spring
     testCompile('org.springframework:spring-test:5.1.4.RELEASE')
-    // Config overridint
+    // Config overriding
     testCompile('org.apache.commons:commons-configuration2:2.4')
     testCompile('commons-beanutils:commons-beanutils:1.9.3')
 }
