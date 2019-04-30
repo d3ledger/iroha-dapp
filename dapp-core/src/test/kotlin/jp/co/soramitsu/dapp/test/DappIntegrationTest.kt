@@ -49,8 +49,9 @@ class DappIntegrationTest {
 
         Thread.sleep(5000)
 
+        // 3 accounts from genesis block and 1 from the test
         assertEquals(
-            "1",
+            "4",
             environment.queryAPI.getAccountAssets(dappRepoAccountId).getAccountAssets(0).balance
         )
     }

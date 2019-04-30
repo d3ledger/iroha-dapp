@@ -49,6 +49,7 @@ var postgresDockerContainer: GenericContainer<*> = GenericContainer<Nothing>()
 var irohaContainer: GenericContainer<*> = GenericContainer<Nothing>()
 val chainAdapter = KGenericFixedContainer("nexus.iroha.tech:19002/d3-deploy/chain-adapter:1.0.0_rc5")
 const val rmqExchange = "iroha"
+const val resourcesLocation = "src/test/resources"
 
 val logger = KLogging().logger
 
@@ -101,6 +102,10 @@ class DappTestEnvironment : Closeable {
     private lateinit var rmqHost: String
     private var rmqPort: Int = 0
 
+    private val pubKeyFile = File("$resourcesLocation/pub.key")
+    private val privKeyFile = File("$resourcesLocation/priv.key")
+    private val lastBlockFile = File("$resourcesLocation/last_block.txt")
+
     val keyPair = irohaKeyPair
 
     fun init() {
@@ -129,13 +134,11 @@ class DappTestEnvironment : Closeable {
         rmqHost = rmq.containerIpAddress
         rmqPort = rmq.getMappedPort(DEFAULT_RMQ_PORT)
 
-        val resourcesLocation = "src/test/resources"
-        val rmqProps = "/rmq.properties"
         val params = Parameters()
         val builder = FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration::class.java)
             .configure(
                 params.properties()
-                    .setFileName(resourcesLocation + rmqProps)
+                    .setFileName(resourcesLocation + "/rmq.properties")
             )
         val config = builder.configuration
         config.setProperty("rmq.iroha.port", iroha.toriiAddress.port)
@@ -144,17 +147,17 @@ class DappTestEnvironment : Closeable {
 
         Files.write(
             DatatypeConverter.printHexBinary(keyPair.public.encoded),
-            File("$resourcesLocation/pub.key"),
+            pubKeyFile,
             Charsets.UTF_8
         )
         Files.write(
             DatatypeConverter.printHexBinary(keyPair.private.encoded),
-            File("$resourcesLocation/priv.key"),
+            privKeyFile,
             Charsets.UTF_8
         )
         Files.write(
             "0",
-            File("$resourcesLocation/last_block.txt"),
+            lastBlockFile,
             Charsets.UTF_8
         )
 
@@ -194,5 +197,8 @@ class DappTestEnvironment : Closeable {
         postgresDockerContainer.stop()
         iroha.conf.deleteTempDir()
         rmq.stop()
+        pubKeyFile.delete()
+        privKeyFile.delete()
+        lastBlockFile.delete()
     }
 }
