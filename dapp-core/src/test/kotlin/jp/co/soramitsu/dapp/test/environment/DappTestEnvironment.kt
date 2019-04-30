@@ -8,6 +8,7 @@ import com.d3.commons.config.RMQConfig
 import com.d3.commons.model.IrohaCredential
 import com.d3.commons.sidechain.iroha.IrohaChainListener
 import com.google.common.io.Files
+import io.ktor.util.error
 import iroha.protocol.BlockOuterClass
 import jp.co.soramitsu.dapp.cache.DefaultCacheManager
 import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
@@ -24,6 +25,7 @@ import jp.co.soramitsu.iroha.testcontainers.detail.GenesisBlockBuilder
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import mu.KLogging
 import org.testcontainers.containers.GenericContainer
 import java.io.Closeable
 import java.io.File
@@ -39,6 +41,8 @@ const val dappRepoAccountId = "dapprepo" + Const.accountIdDelimiter + dappDomain
 val rmq = KGenericContainer("rabbitmq:3-management").withExposedPorts(5672)!!
 val iroha = IrohaContainer().withPeerConfig(peerConfig)!!
 const val rmqExchange = "iroha"
+
+val logger = KLogging().logger
 
 val genesisBlock: BlockOuterClass.Block
     get() {
@@ -68,7 +72,7 @@ val genesisBlock: BlockOuterClass.Block
                 )
                 .build()
         } catch (e: IOException) {
-            e.printStackTrace()
+            logger.error(e)
             throw RuntimeException(e)
         }
     }

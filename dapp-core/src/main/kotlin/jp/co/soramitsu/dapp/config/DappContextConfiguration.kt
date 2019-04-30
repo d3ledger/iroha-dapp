@@ -1,5 +1,6 @@
 package jp.co.soramitsu.dapp.config
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.jdiazcano.cfg4k.loaders.EnvironmentConfigLoader
 import com.jdiazcano.cfg4k.loaders.PropertyConfigLoader
 import com.jdiazcano.cfg4k.providers.OverrideConfigProvider
@@ -40,8 +41,14 @@ class DappContextConfiguration {
         dappConfig.rmqPort,
         dappConfig.rmqExchange,
         dappConfig.queue,
-        Executors.newCachedThreadPool()
+        Executors.newCachedThreadPool(ThreadFactoryBuilder().setNameFormat("chain-listener-%d").build())
     )
+
+    @Bean
+    fun repositoryAccountId() = dappConfig.repository
+
+    @Bean
+    fun repositorySetterId() = dappConfig.repositorySetter
 
     private fun <T : Any> loadConfigs(prefix: String, type: Class<T>, filename: String): T {
         val envLoader = EnvironmentConfigLoader()

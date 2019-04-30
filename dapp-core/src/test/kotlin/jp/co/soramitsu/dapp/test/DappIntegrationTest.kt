@@ -25,6 +25,11 @@ class DappIntegrationTest {
         environment.close()
     }
 
+    /**
+     * @given dApp instance running with all hte infrastructure including one contract
+     * @when contract command type happens in Iroha [CREATE_ACCOUNT]
+     * @then contract is executed and the asset added to the dapprepo@dapp
+     */
     @Test
     internal fun test() {
         environment.service.init()

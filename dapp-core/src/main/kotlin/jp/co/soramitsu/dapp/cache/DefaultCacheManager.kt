@@ -8,21 +8,25 @@ class DefaultCacheManager : CacheManager {
 
     private val cache = HashMap<String, Any?>()
 
+    @Synchronized
     override fun put(key: String?, value: Any?): Any? {
         checkArgument(key)
         return cache.put(key!!, value)
     }
 
+    @Synchronized
     override fun get(key: String?): Any? {
         checkArgument(key)
         return cache[key]
     }
 
+    @Synchronized
     override fun remove(key: String?): Any? {
         checkArgument(key)
         return cache.remove(key)
     }
 
+    @Synchronized
     override fun contains(key: String?): Boolean {
         checkArgument(key)
         return cache.contains(key)

@@ -17,7 +17,9 @@ class DappService(
     private val irohaAPI: IrohaAPI,
     @Autowired
     private val queryAPI: QueryAPI,
+    @Autowired
     private val repositoryAccountId: String,
+    @Autowired
     private val repositorySetterId: String,
     @Autowired
     private val dappKeyPair: KeyPair,
