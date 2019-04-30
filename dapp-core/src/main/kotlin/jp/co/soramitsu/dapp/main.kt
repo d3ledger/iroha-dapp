@@ -3,8 +3,6 @@
 package jp.co.soramitsu.dapp
 
 import jp.co.soramitsu.dapp.service.DappService
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.ComponentScan
 
@@ -15,7 +13,5 @@ fun main(args: Array<String>) {
     val context = AnnotationConfigApplicationContext()
     context.register(DappApplication::class.java)
     context.refresh()
-    GlobalScope.launch {
-        context.getBean(DappService::class.java).init()
-    }
+    context.getBean(DappService::class.java).init()
 }
