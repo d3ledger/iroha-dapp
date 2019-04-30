@@ -1,10 +1,10 @@
 package jp.co.soramitsu.dapp.test
 
+import iroha.protocol.Endpoint
 import jp.co.soramitsu.dapp.test.environment.DappTestEnvironment
 import jp.co.soramitsu.dapp.test.environment.dappDomain
 import jp.co.soramitsu.dapp.test.environment.dappRepoAccountId
 import jp.co.soramitsu.iroha.java.Transaction
-import jp.co.soramitsu.iroha.testcontainers.detail.GenesisBlockBuilder
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -34,20 +34,20 @@ class DappIntegrationTest {
     internal fun test() {
         environment.service.init()
 
-        Thread.sleep(5000)
-
-        environment.irohaAPI.transaction(
+        val toriiResponse = environment.irohaAPI.transaction(
             Transaction.builder(dappRepoAccountId)
                 .createAccount(
                     "test" + Random().nextInt(Integer.MAX_VALUE).toString(),
                     dappDomain,
-                    GenesisBlockBuilder.defaultKeyPair.public
+                    environment.keyPair.public
                 )
-                .sign(GenesisBlockBuilder.defaultKeyPair)
+                .sign(environment.keyPair)
                 .build()
-        )
+        ).blockingLast()
 
-        Thread.sleep(10000)
+        assertEquals(Endpoint.TxStatus.COMMITTED, toriiResponse.txStatus)
+
+        Thread.sleep(5000)
 
         assertEquals(
             "1",

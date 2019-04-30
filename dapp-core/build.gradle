@@ -29,8 +29,6 @@ dependencies {
     compile('com.rabbitmq:amqp-client:5.6.0')
     // Logging
     compile('org.slf4j:slf4j-log4j12:1.8.0-beta2')
-    // TODO Workaround for testing
-    compile('com.google.protobuf:protobuf-java-util:3.5.1')
 
     // unit tests
     testCompile('org.junit.jupiter:junit-jupiter-api:5.4.0')
@@ -39,8 +37,9 @@ dependencies {
     testCompile('com.github.hyperledger.iroha-java:testcontainers:4.1.0')
     // Spring
     testCompile('org.springframework:spring-test:5.1.4.RELEASE')
-    // Chain adapter
-    testCompile('com.github.d3ledger:chain-adapter:master-SNAPSHOT')
+    // Config overridint
+    testCompile('org.apache.commons:commons-configuration2:2.4')
+    testCompile('commons-beanutils:commons-beanutils:1.9.3')
 }
 compileKotlin {
     kotlinOptions {

@@ -3,7 +3,6 @@ package jp.co.soramitsu.dapp;
 import io.reactivex.Observable;
 import iroha.protocol.Commands;
 import jp.co.soramitsu.dapp.helper.CacheManager;
-import jp.co.soramitsu.dapp.helper.TransactionType;
 import jp.co.soramitsu.iroha.java.IrohaAPI;
 
 import java.security.KeyPair;
@@ -33,9 +32,9 @@ public abstract class AbstractDappScript {
     /**
      * Retrieves Iroha command types on which the contract depends
      *
-     * @return {@link Iterable} of {@link TransactionType}
+     * @return {@link Iterable} of {@link Commands.Command.CommandCase}
      */
-    public abstract Iterable<TransactionType> getCommandsToMonitor();
+    public abstract Iterable<Commands.Command.CommandCase> getCommandsToMonitor();
 
     /**
      * Sets a commands observable in the contract

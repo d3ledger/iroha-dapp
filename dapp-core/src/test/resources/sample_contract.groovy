@@ -2,7 +2,6 @@ import io.reactivex.Observable
 import iroha.protocol.Commands
 import jp.co.soramitsu.dapp.AbstractDappScript
 import jp.co.soramitsu.dapp.helper.CacheManager
-import jp.co.soramitsu.dapp.helper.TransactionType
 import jp.co.soramitsu.iroha.java.IrohaAPI
 import jp.co.soramitsu.iroha.java.Transaction
 
@@ -17,8 +16,8 @@ class TestContract extends AbstractDappScript {
     }
 
     @Override
-    Iterable<TransactionType> getCommandsToMonitor() {
-        return [TransactionType.CREATE_ACCOUNT]
+    Iterable<Commands.Command.CommandCase> getCommandsToMonitor() {
+        return [Commands.Command.CommandCase.CREATE_ACCOUNT]
     }
 
     @Override

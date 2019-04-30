@@ -4,8 +4,9 @@ import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import iroha.protocol.Commands
-import jp.co.soramitsu.dapp.helper.TransactionType
+import iroha.protocol.Commands.Command.CommandCase
 import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
+import mu.KLogging
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
@@ -15,12 +16,12 @@ class CommandObservableSource(
     @Autowired
     private val chainListener: ReliableIrohaChainListener
 ) {
-    private val commandsObservables: Map<TransactionType, PublishSubject<Commands.Command>>
+    private val commandsObservables: Map<CommandCase, PublishSubject<Commands.Command>>
     private val scheduler = Schedulers.from(Executors.newSingleThreadExecutor())
 
     init {
-        val obsMap = mutableMapOf<TransactionType, PublishSubject<Commands.Command>>()
-        TransactionType.values().forEach { type ->
+        val obsMap = mutableMapOf<CommandCase, PublishSubject<Commands.Command>>()
+        CommandCase.values().forEach { type ->
             obsMap[type] = PublishSubject.create()
         }
         commandsObservables = obsMap
@@ -31,13 +32,16 @@ class CommandObservableSource(
             .subscribe { block ->
                 block.blockV1.payload.transactionsList.forEach { transaction ->
                     transaction.payload.reducedPayload.commandsList.forEach { command ->
-                        commandsObservables[TransactionType.byIndex(command.descriptorForType.index)]?.onNext(command)
+                        logger.info { "Appending command to the ${command.commandCase} observable" }
+                        commandsObservables[command.commandCase]?.onNext(command)
                     }
                 }
             }
     }
 
-    fun getObservable(type: TransactionType): Observable<Commands.Command> {
+    fun getObservable(type: CommandCase): Observable<Commands.Command> {
         return commandsObservables[type]!!
     }
+
+    companion object : KLogging()
 }
