@@ -1,4 +1,5 @@
 import io.reactivex.Observable
+import io.reactivex.disposables.Disposable
 import iroha.protocol.Commands
 import jp.co.soramitsu.dapp.AbstractDappScript
 import jp.co.soramitsu.dapp.helper.CacheManager
@@ -10,6 +11,8 @@ import java.security.KeyPair
 class TestContract extends AbstractDappScript {
 
     private Observable<Commands.Command> observable
+
+    private Disposable disposable
 
     TestContract(IrohaAPI irohaAPI, KeyPair keyPair, CacheManager cacheManager) {
         super(irohaAPI, keyPair, cacheManager)
@@ -23,11 +26,11 @@ class TestContract extends AbstractDappScript {
     @Override
     void addCommandObservable(Observable<Commands.Command> observable) {
         this.observable = observable
-        process()
+        disposable = process()
     }
 
-    private void process() {
-        observable.subscribe { event ->
+    private Disposable process() {
+        return observable.subscribe { event ->
             irohaAPI.transactionSync(
                     Transaction.builder("dapprepo@dapp")
                             .addAssetQuantity("asset#dapp", "1")
@@ -35,5 +38,11 @@ class TestContract extends AbstractDappScript {
                             .build()
             )
         }
+    }
+
+    @Override
+    void close() {
+        disposable.dispose()
+        observable = null
     }
 }

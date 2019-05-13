@@ -5,12 +5,13 @@ import iroha.protocol.Commands;
 import jp.co.soramitsu.dapp.helper.CacheManager;
 import jp.co.soramitsu.iroha.java.IrohaAPI;
 
+import java.io.Closeable;
 import java.security.KeyPair;
 
 /**
  * Dapp script base class
  */
-public abstract class AbstractDappScript {
+public abstract class AbstractDappScript implements AutoCloseable {
 
     protected final IrohaAPI irohaAPI;
     protected final KeyPair keyPair;

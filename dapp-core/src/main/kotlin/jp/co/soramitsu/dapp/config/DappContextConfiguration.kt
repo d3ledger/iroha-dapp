@@ -33,7 +33,12 @@ class DappContextConfiguration {
     fun irohaApi() = IrohaAPI(URI(dappConfig.irohaUrl))
 
     @Bean
-    fun queryApi() = QueryAPI(irohaApi(), dappConfig.accountId, dappKeyPair())
+    fun dAppAccountId() = dappConfig.accountId
+
+    @Bean
+    fun queryApi(): QueryAPI {
+        return QueryAPI(irohaApi(), dAppAccountId(), dappKeyPair())
+    }
 
     @Bean
     fun chainListener() = ReliableIrohaChainListener(
