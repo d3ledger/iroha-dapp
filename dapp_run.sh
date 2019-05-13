@@ -2,4 +2,4 @@
 
 /wait
 
-java -cp "/opt/dapp/*" "jp.co.soramitsu.dapp.MAIN"
+java -cp "/opt/dapp/*" "jp.co.soramitsu.dapp.DappMain"
