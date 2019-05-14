@@ -12,6 +12,7 @@ import jp.co.soramitsu.crypto.ed25519.Ed25519Sha3
 import jp.co.soramitsu.dapp.cache.DefaultCacheManager
 import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
 import jp.co.soramitsu.dapp.service.CommandObservableSource
+import jp.co.soramitsu.dapp.service.ContractsRepositoryMonitor
 import jp.co.soramitsu.dapp.service.DappService
 import jp.co.soramitsu.iroha.java.IrohaAPI
 import jp.co.soramitsu.iroha.java.QueryAPI
@@ -40,7 +41,8 @@ import java.util.concurrent.Executors
 import javax.xml.bind.DatatypeConverter
 
 
-class KGenericFixedContainer(imageName: String) : FixedHostPortGenericContainer<KGenericFixedContainer>(imageName)
+class KGenericFixedContainer(imageName: String) :
+    FixedHostPortGenericContainer<KGenericFixedContainer>(imageName)
 
 private const val DEFAULT_RMQ_PORT = 5672
 private const val DEFAULT_IROHA_PORT = 50051
@@ -85,6 +87,7 @@ val genesisBlock: BlockOuterClass.Block
                                     )
                             )
                         )
+                        .setAccountDetail(dappInstanceAccountId, "testcontract", "true")
                         .createAsset("asset", dappDomain, 2)
                         .build()
                         .build()
@@ -142,11 +145,12 @@ class DappTestEnvironment : Closeable {
         rmqPort = rmq.getMappedPort(DEFAULT_RMQ_PORT)
 
         val params = Parameters()
-        val builder = FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration::class.java)
-            .configure(
-                params.properties()
-                    .setFileName(resourcesLocation + "/rmq.properties")
-            )
+        val builder =
+            FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration::class.java)
+                .configure(
+                    params.properties()
+                        .setFileName("$resourcesLocation/rmq.properties")
+                )
         val config = builder.configuration
         config.setProperty("rmq.iroha.port", iroha.toriiAddress.port)
         config.setProperty("rmq.irohaCredential.accountId", dappInstanceAccountId)
@@ -178,24 +182,27 @@ class DappTestEnvironment : Closeable {
 
         queryAPI = QueryAPI(irohaAPI, dappInstanceAccountId, irohaKeyPair)
 
+        val chainListener = ReliableIrohaChainListener(
+            rmqHost,
+            rmqPort,
+            rmqExchange,
+            Random().nextLong().toString(),
+            Executors.newSingleThreadExecutor(
+                ThreadFactoryBuilder().setNameFormat("chain-listener-%d").build()
+            )
+        )
         service = DappService(
             irohaAPI,
-            queryAPI,
-            dappRepoAccountId,
-            dappRepoAccountId,
             irohaKeyPair,
-            CommandObservableSource(
-                ReliableIrohaChainListener(
-                    rmqHost,
-                    rmqPort,
-                    rmqExchange,
-                    Random().nextLong().toString(),
-                    Executors.newSingleThreadExecutor(
-                        ThreadFactoryBuilder().setNameFormat("chain-listener-%d").build()
-                    )
-                )
-            ),
-            DefaultCacheManager()
+            CommandObservableSource(chainListener),
+            DefaultCacheManager(),
+            ContractsRepositoryMonitor(
+                chainListener,
+                queryAPI,
+                dappInstanceAccountId,
+                dappRepoAccountId,
+                dappRepoAccountId
+            )
         )
     }
 

@@ -6,13 +6,11 @@
 package jp.co.soramitsu.dapp.service
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder
-import com.google.gson.JsonParser
 import io.reactivex.schedulers.Schedulers
 import jp.co.soramitsu.dapp.AbstractDappScript
 import jp.co.soramitsu.dapp.helper.CacheManager
 import jp.co.soramitsu.dapp.parser.ContractParser.Companion.parse
 import jp.co.soramitsu.iroha.java.IrohaAPI
-import jp.co.soramitsu.iroha.java.QueryAPI
 import jp.co.soramitsu.iroha.java.Utils
 import mu.KLogging
 import org.springframework.beans.factory.annotation.Autowired
@@ -24,12 +22,6 @@ import java.util.concurrent.Executors
 class DappService(
     @Autowired
     private val irohaAPI: IrohaAPI,
-    @Autowired
-    private val queryAPI: QueryAPI,
-    @Autowired
-    private val repositoryAccountId: String,
-    @Autowired
-    private val repositorySetterId: String,
     @Autowired
     private val dappKeyPair: KeyPair,
     @Autowired
@@ -49,28 +41,8 @@ class DappService(
     private val contracts: MutableMap<String, AbstractDappScript> = mutableMapOf()
 
     init {
-        retrieveContracts()
         monitorDisabled()
         monitorNew()
-    }
-
-    private fun retrieveContracts() {
-        JsonParser().parse(
-            queryAPI.getAccountDetails(
-                repositoryAccountId,
-                repositorySetterId,
-                null
-            )
-        ).asJsonObject
-            .get(repositorySetterId)
-            .asJsonObject
-            .entrySet()
-            .mapNotNull { (name, script) ->
-                parseContract(name, script.asString)
-            }
-            .forEach { contractPair ->
-                safePut(contractPair)
-            }
     }
 
     fun init() {
@@ -93,19 +65,11 @@ class DappService(
     private fun monitorNew() {
         contractsRepositoryMonitor.getNewContractsObservable()
             .observeOn(scheduler)
-            .subscribe { newContractName ->
-                safePut(
-                    parseContract(
-                        newContractName,
-                        queryAPI.getAccountDetails(
-                            repositoryAccountId,
-                            repositorySetterId,
-                            newContractName
-                        )
-                    )
-                )
+            .subscribe { (name, script) ->
+                logger.info("Got new contract to run: $name")
+                safePut(parseContract(name, script))
             }
-
+        contractsRepositoryMonitor.initObservable()
     }
 
     private fun monitorDisabled() {
@@ -117,12 +81,23 @@ class DappService(
     @Synchronized
     private fun safePut(contractPair: Pair<String, AbstractDappScript>?) {
         if (contractPair != null) {
-            contracts[contractPair.first] = contractPair.second
+            val contractName = contractPair.first
+            if (contracts.containsKey(contractName)) {
+                logger.info("Removing the old version of $contractName contract")
+                safeDelete(contractName)
+            }
+            val contractObject = contractPair.second
+            contracts[contractName] = contractObject
+            contractObject.commandsToMonitor?.forEach { type ->
+                contractObject.addCommandObservable(observableSource.getObservable(type))
+            }
+            logger.info("Inserted $contractName")
         }
     }
 
     @Synchronized
     private fun safeDelete(name: String) {
+        logger.info("Removing $name contract")
         contracts.remove(name)?.close()
     }
 

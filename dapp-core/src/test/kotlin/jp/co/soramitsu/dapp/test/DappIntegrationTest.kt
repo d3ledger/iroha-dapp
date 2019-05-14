@@ -52,11 +52,10 @@ class DappIntegrationTest {
 
         assertEquals(Endpoint.TxStatus.COMMITTED, toriiResponse.txStatus)
 
-        Thread.sleep(5000)
+        Thread.sleep(10000)
 
-        // 3 accounts from genesis block and 1 from the test
         assertEquals(
-            "4",
+            "1",
             environment.queryAPI.getAccountAssets(dappRepoAccountId).getAccountAssets(0).balance
         )
     }

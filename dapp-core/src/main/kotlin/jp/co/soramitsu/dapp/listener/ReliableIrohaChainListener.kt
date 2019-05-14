@@ -9,7 +9,6 @@ import com.rabbitmq.client.BuiltinExchangeType
 import com.rabbitmq.client.ConnectionFactory
 import com.rabbitmq.client.Delivery
 import io.reactivex.Observable
-import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import iroha.protocol.BlockOuterClass
 import mu.KLogging
@@ -23,7 +22,6 @@ private const val DEFAULT_LAST_READ_BLOCK = -1L
  * @param rmqHost - rmq host name
  * @param rmqExchange - rmq exchange name
  * @param irohaQueue - name of queue to read Iroha blocks from
- * @param subscribe - function that will be called on new block
  * @param consumerExecutorService - executor that is used to execure RabbitMQ consumer code.
  */
 class ReliableIrohaChainListener(
@@ -31,17 +29,8 @@ class ReliableIrohaChainListener(
     private val rmqPort: Int,
     rmqExchange: String,
     private val irohaQueue: String,
-    private val subscribe: (iroha.protocol.BlockOuterClass.Block) -> Unit,
     private val consumerExecutorService: ExecutorService
 ) : Closeable {
-
-    constructor(
-        rmqHost: String,
-        rmqPort: Int,
-        rmqExchange: String,
-        irohaQueue: String,
-        consumerExecutorService: ExecutorService
-    ) : this(rmqHost, rmqPort, rmqExchange, irohaQueue, { }, consumerExecutorService)
 
     private val factory = ConnectionFactory()
 
@@ -58,18 +47,14 @@ class ReliableIrohaChainListener(
 
     private var consumerTag: String? = null
 
+    private val observable: Observable<BlockOuterClass.Block>
+
     init {
         channel.exchangeDeclare(rmqExchange, BuiltinExchangeType.FANOUT, true)
         channel.queueDeclare(irohaQueue, true, false, false, null)
         channel.queueBind(irohaQueue, rmqExchange, "")
         channel.basicQos(1)
-    }
 
-    /**
-     * Returns an observable that emits a new block every time it gets it from Iroha
-     */
-    fun getBlockObservable(
-    ): Observable<BlockOuterClass.Block> {
         val source = PublishSubject.create<BlockOuterClass.Block>()
         val deliverCallback = { _: String, delivery: Delivery ->
             // This code is executed inside consumerExecutorService
@@ -81,15 +66,19 @@ class ReliableIrohaChainListener(
                 logger.warn { "Not able to handle Iroha block ${block.blockV1.payload.height}" }
             }
         }
-        val obs: Observable<iroha.protocol.BlockOuterClass.Block> =
-            source.map { block ->
-                logger.info { "New Iroha block from RMQ arrived. Height ${block.blockV1.payload.height}" }
-                block
-            }
-        obs.observeOn(Schedulers.from(consumerExecutorService)).subscribe { block -> subscribe(block) }
+        observable = source.map { block ->
+            logger.info { "New Iroha block from RMQ arrived. Height ${block.blockV1.payload.height}" }
+            block
+        }
         consumerTag = channel.basicConsume(irohaQueue, true, deliverCallback, { _ -> })
+    }
 
-        return obs
+    /**
+     * Returns an observable that emits a new block every time it gets it from Iroha
+     */
+    fun getBlockObservable(
+    ): Observable<BlockOuterClass.Block> {
+        return observable
     }
 
     /**
