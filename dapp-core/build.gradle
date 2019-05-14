@@ -30,8 +30,6 @@ dependencies {
     compile('org.codehaus.groovy:groovy:3.0.0-alpha-4')
     // Spring
     compile('org.springframework:spring-context:5.1.4.RELEASE')
-    // Configuration
-    compile('com.jdiazcano.cfg4k:cfg4k-core:0.9.3')
     // RMQ
     compile('com.rabbitmq:amqp-client:5.6.0')
     // Logging
