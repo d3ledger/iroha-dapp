@@ -5,9 +5,10 @@
 
 package jp.co.soramitsu.dapp.service
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder
+import com.d3.commons.util.createPrettyFixThreadPool
 import io.reactivex.schedulers.Schedulers
 import jp.co.soramitsu.dapp.AbstractDappScript
+import jp.co.soramitsu.dapp.config.DAPP_NAME
 import jp.co.soramitsu.dapp.helper.CacheManager
 import jp.co.soramitsu.dapp.parser.ContractParser.Companion.parse
 import jp.co.soramitsu.iroha.java.IrohaAPI
@@ -16,7 +17,6 @@ import mu.KLogging
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.security.KeyPair
-import java.util.concurrent.Executors
 
 @Component
 class DappService(
@@ -31,12 +31,7 @@ class DappService(
     @Autowired
     private val contractsRepositoryMonitor: ContractsRepositoryMonitor
 ) {
-    private val scheduler = Schedulers.from(
-        Executors.newFixedThreadPool(
-            2,
-            ThreadFactoryBuilder().setNameFormat("dapp-service-%d").build()
-        )
-    )
+    private val scheduler = Schedulers.from(createPrettyFixThreadPool(DAPP_NAME, "service"))
 
     private val contracts: MutableMap<String, AbstractDappScript> = mutableMapOf()
 

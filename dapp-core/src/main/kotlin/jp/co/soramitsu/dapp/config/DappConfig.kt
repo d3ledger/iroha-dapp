@@ -5,6 +5,8 @@
 
 package jp.co.soramitsu.dapp.config
 
+const val DAPP_NAME = "dapp"
+
 interface DappConfig {
 
     val accountId: String

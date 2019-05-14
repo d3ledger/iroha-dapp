@@ -1,4 +1,4 @@
-FROM openjdk:8-jre
+FROM openjdk:8u181-jre-alpine
 WORKDIR /opt/brvs
 COPY ./dapp-core/build/libs/iroha-dapp-all.jar /opt/dapp/dapp.jar
 

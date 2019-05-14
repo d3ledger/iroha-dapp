@@ -5,18 +5,19 @@
 
 package jp.co.soramitsu.dapp.service
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder
+import com.d3.commons.util.createPrettySingleThreadPool
 import com.google.gson.JsonParser
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import iroha.protocol.BlockOuterClass
+import jp.co.soramitsu.dapp.config.DAPP_NAME
 import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
 import jp.co.soramitsu.iroha.java.QueryAPI
 import mu.KLogging
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
-import java.util.concurrent.Executors
 
 @Component
 class ContractsRepositoryMonitor(
@@ -34,11 +35,7 @@ class ContractsRepositoryMonitor(
     private val jsonParser = JsonParser()
     private val newContractsSubject: PublishSubject<Pair<String, String>> = PublishSubject.create()
     private val disabledContractsSubject: PublishSubject<String> = PublishSubject.create()
-    private val scheduler = Schedulers.from(
-        Executors.newSingleThreadExecutor(
-            ThreadFactoryBuilder().setNameFormat("observable-contracts-%d").build()
-        )
-    )
+    private val scheduler = Schedulers.from(createPrettySingleThreadPool(DAPP_NAME, "observable-contracts"))
 
     fun initObservable() {
         logger.info("Subscribed to contracts status updates")

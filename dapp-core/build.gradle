@@ -21,6 +21,8 @@ apply plugin: 'kotlin-spring'
 dependencies {
     compile project(':dapp-interface')
 
+    // Notary
+    compile('com.github.d3ledger.notary:notary-commons:3041ba9757')
     // Kotlin
     compile('org.jetbrains.kotlin:kotlin-stdlib-jdk8')
     compile('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.2.1')

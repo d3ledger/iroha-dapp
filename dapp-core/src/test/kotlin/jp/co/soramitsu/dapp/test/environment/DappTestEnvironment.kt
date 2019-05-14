@@ -33,7 +33,6 @@ import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.InternetProtocol
 import java.io.Closeable
 import java.io.File
-import java.io.IOException
 import java.net.URI
 import java.nio.charset.Charset
 import java.util.*
@@ -64,39 +63,34 @@ val logger = KLogging().logger
 
 val genesisBlock: BlockOuterClass.Block
     get() {
-        try {
-            return GenesisBlockBuilder()
-                .addDefaultTransaction()
-                .addTransaction(
-                    Transaction.builder(dappRepoAccountId)
-                        .createDomain(dappDomain, GenesisBlockBuilder.defaultRoleName)
-                        .createAccount(
-                            dappInstanceAccountId,
-                            irohaKeyPair.public
+        return GenesisBlockBuilder()
+            .addDefaultTransaction()
+            .addTransaction(
+                Transaction.builder(dappRepoAccountId)
+                    .createDomain(dappDomain, GenesisBlockBuilder.defaultRoleName)
+                    .createAccount(
+                        dappInstanceAccountId,
+                        irohaKeyPair.public
+                    )
+                    .createAccount(
+                        dappRepoAccountId,
+                        irohaKeyPair.public
+                    )
+                    .setAccountDetail(
+                        dappRepoAccountId, "testcontract", Utils.irohaEscape(
+                            Files
+                                .toString(
+                                    File("src/test/resources/sample_contract.groovy"),
+                                    Charset.defaultCharset()
+                                )
                         )
-                        .createAccount(
-                            dappRepoAccountId,
-                            irohaKeyPair.public
-                        )
-                        .setAccountDetail(
-                            dappRepoAccountId, "testcontract", Utils.irohaEscape(
-                                Files
-                                    .toString(
-                                        File("src/test/resources/sample_contract.groovy"),
-                                        Charset.defaultCharset()
-                                    )
-                            )
-                        )
-                        .setAccountDetail(dappInstanceAccountId, "testcontract", "true")
-                        .createAsset("asset", dappDomain, 2)
-                        .build()
-                        .build()
-                )
-                .build()
-        } catch (e: IOException) {
-            logger.error("Genesis block building exception occurred", e)
-            throw RuntimeException(e)
-        }
+                    )
+                    .setAccountDetail(dappInstanceAccountId, "testcontract", "true")
+                    .createAsset("asset", dappDomain, 2)
+                    .build()
+                    .build()
+            )
+            .build()
     }
 
 val peerConfig: PeerConfig
