@@ -1,3 +1,8 @@
+/*
+ * Copyright D3 Ledger, Inc. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
 import iroha.protocol.Commands
