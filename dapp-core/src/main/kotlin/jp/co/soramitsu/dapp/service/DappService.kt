@@ -45,14 +45,6 @@ class DappService(
         monitorNew()
     }
 
-    fun init() {
-        contracts.forEach { (_, contract) ->
-            contract.commandsToMonitor.forEach { type ->
-                contract.addCommandObservable(observableSource.getObservable(type))
-            }
-        }
-    }
-
     private fun parseContract(name: String, script: String): Pair<String, AbstractDappScript>? {
         return try {
             name to parse(Utils.irohaUnEscape(script), irohaAPI, dappKeyPair, cacheManager)

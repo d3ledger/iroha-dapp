@@ -9,6 +9,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
+import iroha.protocol.BlockOuterClass
 import iroha.protocol.Commands
 import iroha.protocol.Commands.Command.CommandCase
 import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
@@ -18,7 +19,7 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
 
 @Component
-class CommandObservableSource(
+final class CommandObservableSource(
     @Autowired
     private val chainListener: ReliableIrohaChainListener
 ) {
@@ -36,17 +37,16 @@ class CommandObservableSource(
         }
         commandsObservables = obsMap
 
-        chainListener
-            .getBlockObservable()
-            .observeOn(scheduler)
-            .subscribe { block ->
-                block.blockV1.payload.transactionsList.forEach { transaction ->
-                    transaction.payload.reducedPayload.commandsList.forEach { command ->
-                        logger.info { "Appending command to the ${command.commandCase} observable" }
-                        commandsObservables[command.commandCase]?.onNext(command)
-                    }
-                }
+        chainListener.processIrohaBlocks(this::processBlock, scheduler)
+    }
+
+    private fun processBlock(block: BlockOuterClass.Block) {
+        block.blockV1.payload.transactionsList.forEach { transaction ->
+            transaction.payload.reducedPayload.commandsList.forEach { command ->
+                logger.info { "Appending command to the ${command.commandCase} observable" }
+                commandsObservables[command.commandCase]?.onNext(command)
             }
+        }
     }
 
     fun getObservable(type: CommandCase): Observable<Commands.Command> {

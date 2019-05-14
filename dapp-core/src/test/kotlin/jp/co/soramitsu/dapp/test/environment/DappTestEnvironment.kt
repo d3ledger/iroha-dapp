@@ -204,6 +204,9 @@ class DappTestEnvironment : Closeable {
                 dappRepoAccountId
             )
         )
+
+        // To be sure the service is initialized
+        Thread.sleep(1000)
     }
 
     override fun close() {

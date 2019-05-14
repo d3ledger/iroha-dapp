@@ -37,8 +37,6 @@ class DappIntegrationTest {
      */
     @Test
     internal fun test() {
-        environment.service.init()
-
         val toriiResponse = environment.irohaAPI.transaction(
             Transaction.builder(dappRepoAccountId)
                 .createAccount(

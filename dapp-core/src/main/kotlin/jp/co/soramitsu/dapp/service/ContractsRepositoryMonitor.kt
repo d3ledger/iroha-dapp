@@ -10,6 +10,7 @@ import com.google.gson.JsonParser
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
+import iroha.protocol.BlockOuterClass
 import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
 import jp.co.soramitsu.iroha.java.QueryAPI
 import mu.KLogging
@@ -41,37 +42,36 @@ class ContractsRepositoryMonitor(
 
     fun initObservable() {
         logger.info("Subscribed to contracts status updates")
-        chainListener
-            .getBlockObservable()
-            .observeOn(scheduler)
-            .subscribe { block ->
-                block.blockV1.payload.transactionsList
-                    .forEach { transaction ->
-                        transaction.payload.reducedPayload.commandsList.stream()
-                            .filter { command ->
-                                command.hasSetAccountDetail()
-                            }
-                            .map { command ->
-                                command.setAccountDetail
-                            }
-                            .filter { setAccountDetail ->
-                                setAccountDetail.accountId == dAppAccountId
-                            }
-                            .forEach { setAccountDetail ->
-                                val contractName = setAccountDetail.key
-                                if (isContractEnabled(contractName)) {
-                                    logger.info("New contract has been enabled $contractName")
-                                    newContractsSubject.onNext(
-                                        Pair(
-                                            contractName,
-                                            retrieveContract(contractName)
-                                        )
-                                    )
-                                } else {
-                                    logger.info("A contract has been disabled $contractName")
-                                    disabledContractsSubject.onNext(contractName)
-                                }
-                            }
+        chainListener.processIrohaBlocks(this::processBlock, scheduler)
+    }
+
+    private fun processBlock(block: BlockOuterClass.Block) {
+        block.blockV1.payload.transactionsList
+            .forEach { transaction ->
+                transaction.payload.reducedPayload.commandsList.stream()
+                    .filter { command ->
+                        command.hasSetAccountDetail()
+                    }
+                    .map { command ->
+                        command.setAccountDetail
+                    }
+                    .filter { setAccountDetail ->
+                        setAccountDetail.accountId == dAppAccountId
+                    }
+                    .forEach { setAccountDetail ->
+                        val contractName = setAccountDetail.key
+                        if (isContractEnabled(contractName)) {
+                            logger.info("New contract has been enabled $contractName")
+                            newContractsSubject.onNext(
+                                Pair(
+                                    contractName,
+                                    retrieveContract(contractName)
+                                )
+                            )
+                        } else {
+                            logger.info("A contract has been disabled $contractName")
+                            disabledContractsSubject.onNext(contractName)
+                        }
                     }
             }
     }
