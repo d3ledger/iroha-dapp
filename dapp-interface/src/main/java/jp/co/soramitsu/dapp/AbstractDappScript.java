@@ -5,7 +5,6 @@
 
 package jp.co.soramitsu.dapp;
 
-import io.reactivex.Observable;
 import iroha.protocol.Commands;
 import jp.co.soramitsu.dapp.helper.CacheManager;
 import jp.co.soramitsu.iroha.java.IrohaAPI;
@@ -15,7 +14,7 @@ import java.security.KeyPair;
 /**
  * Dapp script base class
  */
-public abstract class AbstractDappScript implements AutoCloseable {
+public abstract class AbstractDappScript {
 
     protected IrohaAPI irohaAPI;
     protected KeyPair keyPair;
@@ -29,9 +28,9 @@ public abstract class AbstractDappScript implements AutoCloseable {
     public abstract Iterable<Commands.Command.CommandCase> getCommandsToMonitor();
 
     /**
-     * Sets a commands observable in the contract
+     * Calls a logic of the contract
      */
-    public abstract void addCommandObservable(Observable<Commands.Command> observable);
+    public abstract void processCommand(Commands.Command command);
 
     public void setIrohaAPI(IrohaAPI irohaAPI) {
         this.irohaAPI = irohaAPI;

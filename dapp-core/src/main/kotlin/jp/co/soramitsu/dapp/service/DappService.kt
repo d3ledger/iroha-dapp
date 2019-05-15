@@ -5,7 +5,8 @@
 
 package jp.co.soramitsu.dapp.service
 
-import com.d3.commons.util.createPrettyFixThreadPool
+import com.d3.commons.util.namedThreadFactory
+import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import jp.co.soramitsu.dapp.AbstractDappScript
 import jp.co.soramitsu.dapp.config.DAPP_NAME
@@ -17,6 +18,8 @@ import mu.KLogging
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.security.KeyPair
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 @Component
 class DappService(
@@ -31,9 +34,11 @@ class DappService(
     @Autowired
     private val contractsRepositoryMonitor: ContractsRepositoryMonitor
 ) {
-    private val scheduler = Schedulers.from(createPrettyFixThreadPool(DAPP_NAME, "service"))
+    private val scheduler = Schedulers.from(createPrettyCachedThreadPool(DAPP_NAME, "service"))
 
     private val contracts: MutableMap<String, AbstractDappScript> = mutableMapOf()
+
+    private val contractsSubscriptions: MutableMap<String, MutableList<Disposable>> = mutableMapOf()
 
     init {
         monitorDisabled()
@@ -80,10 +85,16 @@ class DappService(
             contractObject.setIrohaAPI(irohaAPI)
             contractObject.setKeyPair(dappKeyPair)
             contractObject.setCacheManager(cacheManager)
-            contracts[contractName] = contractObject
+            val disposables = mutableListOf<Disposable>()
             contractObject.commandsToMonitor?.forEach { type ->
-                contractObject.addCommandObservable(observableSource.getObservable(type))
+                disposables.add(
+                    observableSource.getObservable(type)
+                        .observeOn(scheduler)
+                        .subscribe(contractObject::processCommand)
+                )
             }
+            contracts[contractName] = contractObject
+            contractsSubscriptions[contractName] = disposables
             logger.info("Inserted $contractName")
         }
     }
@@ -94,9 +105,18 @@ class DappService(
         if (script == null) {
             logger.warn("Nothing to remove, no contract $name")
         } else {
-            script.close()
+            contractsSubscriptions.remove(name)?.forEach(Disposable::dispose)
             logger.info("Removed $name contract")
         }
+    }
+
+    private fun createPrettyCachedThreadPool(
+        serviceName: String,
+        purpose: String
+    ): ExecutorService {
+        return Executors.newCachedThreadPool(
+            namedThreadFactory(serviceName, purpose)
+        )!!
     }
 
     companion object : KLogging()

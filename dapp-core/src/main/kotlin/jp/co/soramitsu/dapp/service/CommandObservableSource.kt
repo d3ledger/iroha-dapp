@@ -18,11 +18,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
 @Component
-final class CommandObservableSource(
+class CommandObservableSource(
     @Autowired
     private val blockProcessor: BlockProcessor
 ) {
     private val commandsObservables: Map<CommandCase, PublishSubject<Commands.Command>>
+    private val sharedObservables: Map<Commands.Command.CommandCase, Observable<Commands.Command>>
     private val scheduler = Schedulers.from(createPrettySingleThreadPool(DAPP_NAME, "observable-source"))
 
     init {
@@ -38,10 +39,14 @@ final class CommandObservableSource(
                 logger.info { "Appending command to the ${command.commandCase} observable" }
                 commandsObservables[command.commandCase]?.onNext(command)
             }
+
+        sharedObservables = commandsObservables.entries.map { (case, subject) ->
+            case to subject.share()
+        }.toMap()
     }
 
     fun getObservable(type: CommandCase): Observable<Commands.Command> {
-        return commandsObservables[type]!!
+        return sharedObservables[type]!!
     }
 
     companion object : KLogging()

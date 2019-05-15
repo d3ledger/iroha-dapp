@@ -3,18 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
-import io.reactivex.Observable
-import io.reactivex.disposables.Disposable
 import iroha.protocol.Commands
 import jp.co.soramitsu.dapp.AbstractDappScript
 import jp.co.soramitsu.iroha.java.Transaction
 
 class TestContract extends AbstractDappScript {
-
-    private Observable<Commands.Command> observable
-
-    private Disposable disposable
 
     @Override
     Iterable<Commands.Command.CommandCase> getCommandsToMonitor() {
@@ -22,13 +15,8 @@ class TestContract extends AbstractDappScript {
     }
 
     @Override
-    void addCommandObservable(Observable<Commands.Command> observable) {
-        this.observable = observable
-        disposable = process()
-    }
-
-    private Disposable process() {
-        return observable.subscribe { event ->
+    void processCommand(Commands.Command command) {
+        if (getCommandsToMonitor().contains(command.commandCase)) {
             irohaAPI.transactionSync(
                     Transaction.builder("dapprepo@dapp")
                             .addAssetQuantity("asset#dapp", "1")
@@ -36,11 +24,5 @@ class TestContract extends AbstractDappScript {
                             .build()
             )
         }
-    }
-
-    @Override
-    void close() {
-        disposable.dispose()
-        observable = null
     }
 }
