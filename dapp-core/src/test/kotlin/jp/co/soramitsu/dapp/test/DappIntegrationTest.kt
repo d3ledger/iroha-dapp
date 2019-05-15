@@ -14,6 +14,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
 import java.util.*
 
 class DappIntegrationTest {
@@ -32,12 +33,41 @@ class DappIntegrationTest {
 
     /**
      * @given dApp instance running with all hte infrastructure including one contract
-     * @when contract command type happens in Iroha [CREATE_ACCOUNT]
+     * @when contract is enabled and command type [CREATE_ACCOUNT] happens in Iroha
      * @then contract is executed and the asset added to the dapprepo@dapp
+     * @when contract is disabled and command type [CREATE_ACCOUNT] happens in Iroha
+     * @then contract is not executed and the asset balance stays the same as before
      */
     @Test
     internal fun test() {
-        val toriiResponse = environment.irohaAPI.transaction(
+        val initialBalance = getXorBalance()
+
+        environment.enableTestContract()
+
+        Thread.sleep(1000)
+
+        var toriiResponse = createNewAccount()
+        assertEquals(Endpoint.TxStatus.COMMITTED, toriiResponse.txStatus)
+
+        Thread.sleep(5000)
+
+        val balanceAfterOneAccountCreation = getXorBalance()
+        assertEquals(initialBalance.plus(BigDecimal.ONE), balanceAfterOneAccountCreation)
+
+        environment.disableTestContract()
+
+        Thread.sleep(1000)
+
+        toriiResponse = createNewAccount()
+        assertEquals(Endpoint.TxStatus.COMMITTED, toriiResponse.txStatus)
+
+        Thread.sleep(5000)
+
+        assertEquals(balanceAfterOneAccountCreation, getXorBalance())
+    }
+
+    private fun createNewAccount(): Endpoint.ToriiResponse {
+        return environment.irohaAPI.transaction(
             Transaction.builder(dappRepoAccountId)
                 .createAccount(
                     "test" + Random().nextInt(Integer.MAX_VALUE).toString(),
@@ -47,14 +77,13 @@ class DappIntegrationTest {
                 .sign(environment.keyPair)
                 .build()
         ).blockingLast()
+    }
 
-        assertEquals(Endpoint.TxStatus.COMMITTED, toriiResponse.txStatus)
-
-        Thread.sleep(10000)
-
-        assertEquals(
-            "1",
-            environment.queryAPI.getAccountAssets(dappRepoAccountId).getAccountAssets(0).balance
-        )
+    private fun getXorBalance(): BigDecimal {
+        val assets = environment.queryAPI.getAccountAssets(dappRepoAccountId)
+        return if (assets.accountAssetsCount == 0) {
+            BigDecimal.ZERO
+        } else
+            BigDecimal(assets.getAccountAssets(0)?.balance ?: "0")
     }
 }

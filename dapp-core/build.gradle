@@ -45,6 +45,8 @@ dependencies {
     // Config overriding
     testCompile('org.apache.commons:commons-configuration2:2.4')
     testCompile('commons-beanutils:commons-beanutils:1.9.3')
+    // Workaround for test
+    testCompile('com.google.protobuf:protobuf-java-util:3.5.1')
 }
 compileKotlin {
     kotlinOptions {

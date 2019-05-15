@@ -53,7 +53,7 @@ class DappService(
         contractsRepositoryMonitor.getNewContractsObservable()
             .observeOn(scheduler)
             .subscribe { (name, script) ->
-                logger.info("Got new contract to run: $name")
+                logger.info("Got new contract to enable: $name")
                 safePut(parseContract(name, script))
             }
         contractsRepositoryMonitor.initObservable()
@@ -62,7 +62,10 @@ class DappService(
     private fun monitorDisabled() {
         contractsRepositoryMonitor.getDisabledContractsSubject()
             .observeOn(scheduler)
-            .subscribe(this::safeDelete)
+            .subscribe { name ->
+                logger.info("Got new contract to disable: $name")
+                safeDelete(name)
+            }
     }
 
     @Synchronized
@@ -84,8 +87,13 @@ class DappService(
 
     @Synchronized
     private fun safeDelete(name: String) {
-        logger.info("Removing $name contract")
-        contracts.remove(name)?.close()
+        val script = contracts.remove(name)
+        if (script == null) {
+            logger.warn("Nothing to remove, no contract $name")
+        } else {
+            script.close()
+            logger.info("Removed $name contract")
+        }
     }
 
     companion object : KLogging()

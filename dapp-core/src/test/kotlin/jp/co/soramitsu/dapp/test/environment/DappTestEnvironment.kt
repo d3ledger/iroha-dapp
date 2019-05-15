@@ -5,11 +5,13 @@
 
 package jp.co.soramitsu.dapp.test.environment
 
+import com.d3.commons.util.createPrettySingleThreadPool
 import com.google.common.io.Files
-import com.google.common.util.concurrent.ThreadFactoryBuilder
 import iroha.protocol.BlockOuterClass
+import iroha.protocol.Endpoint
 import jp.co.soramitsu.crypto.ed25519.Ed25519Sha3
 import jp.co.soramitsu.dapp.cache.DefaultCacheManager
+import jp.co.soramitsu.dapp.config.DAPP_NAME
 import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
 import jp.co.soramitsu.dapp.service.CommandObservableSource
 import jp.co.soramitsu.dapp.service.ContractsRepositoryMonitor
@@ -22,7 +24,6 @@ import jp.co.soramitsu.iroha.java.detail.Const
 import jp.co.soramitsu.iroha.testcontainers.IrohaContainer
 import jp.co.soramitsu.iroha.testcontainers.PeerConfig
 import jp.co.soramitsu.iroha.testcontainers.detail.GenesisBlockBuilder
-import mu.KLogging
 import org.apache.commons.configuration2.FileBasedConfiguration
 import org.apache.commons.configuration2.PropertiesConfiguration
 import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder
@@ -36,7 +37,6 @@ import java.io.File
 import java.net.URI
 import java.nio.charset.Charset
 import java.util.*
-import java.util.concurrent.Executors
 import javax.xml.bind.DatatypeConverter
 
 
@@ -58,8 +58,6 @@ var irohaContainer: GenericContainer<*> = GenericContainer<Nothing>()
 val chainAdapter = KGenericFixedContainer("nexus.iroha.tech:19002/d3-deploy/chain-adapter:1.0.0_rc5")
 const val rmqExchange = "iroha"
 const val resourcesLocation = "src/test/resources"
-
-val logger = KLogging().logger
 
 val genesisBlock: BlockOuterClass.Block
     get() {
@@ -85,7 +83,6 @@ val genesisBlock: BlockOuterClass.Block
                                 )
                         )
                     )
-                    .setAccountDetail(dappInstanceAccountId, "testcontract", "true")
                     .createAsset("asset", dappDomain, 2)
                     .build()
                     .build()
@@ -111,6 +108,30 @@ class DappTestEnvironment : Closeable {
     private val lastBlockFile = File("$resourcesLocation/last_block.txt")
 
     val keyPair = irohaKeyPair
+
+    fun enableTestContract() {
+        val response = irohaAPI.transaction(
+            Transaction.builder(dappRepoAccountId)
+                .setAccountDetail(dappInstanceAccountId, "testcontract", "true")
+                .sign(irohaKeyPair)
+                .build()
+        ).blockingLast()
+        if (response.txStatus != Endpoint.TxStatus.COMMITTED) {
+            throw RuntimeException("Enabling of test contract failed")
+        }
+    }
+
+    fun disableTestContract() {
+        val response = irohaAPI.transaction(
+            Transaction.builder(dappRepoAccountId)
+                .setAccountDetail(dappInstanceAccountId, "testcontract", "false")
+                .sign(irohaKeyPair)
+                .build()
+        ).blockingLast()
+        if (response.txStatus != Endpoint.TxStatus.COMMITTED) {
+            throw RuntimeException("Disabling of test contract failed")
+        }
+    }
 
     fun init() {
         iroha.withLogger(null)
@@ -181,9 +202,7 @@ class DappTestEnvironment : Closeable {
             rmqPort,
             rmqExchange,
             Random().nextLong().toString(),
-            Executors.newSingleThreadExecutor(
-                ThreadFactoryBuilder().setNameFormat("chain-listener-%d").build()
-            )
+            createPrettySingleThreadPool(DAPP_NAME, "chain-listener")
         )
         service = DappService(
             irohaAPI,
