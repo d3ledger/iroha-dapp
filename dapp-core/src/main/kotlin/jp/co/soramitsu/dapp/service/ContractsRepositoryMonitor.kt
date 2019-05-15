@@ -67,7 +67,6 @@ class ContractsRepositoryMonitor(
         }
     }
 
-
     fun isContractEnabled(name: String): Boolean {
         return try {
             jsonParser.parse(
