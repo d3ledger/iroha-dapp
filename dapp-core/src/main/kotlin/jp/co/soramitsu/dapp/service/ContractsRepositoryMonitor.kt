@@ -11,7 +11,6 @@ import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import iroha.protocol.Commands
-import jp.co.soramitsu.dapp.block.BlockProcessor
 import jp.co.soramitsu.dapp.config.DAPP_NAME
 import jp.co.soramitsu.iroha.java.QueryAPI
 import mu.KLogging
@@ -21,7 +20,7 @@ import org.springframework.stereotype.Component
 @Component
 class ContractsRepositoryMonitor(
     @Autowired
-    private val blockProcessor: BlockProcessor,
+    private val commandObservableSource: CommandObservableSource,
     @Autowired
     private val queryAPI: QueryAPI,
     @Autowired
@@ -37,16 +36,13 @@ class ContractsRepositoryMonitor(
     private val scheduler = Schedulers.from(createPrettySingleThreadPool(DAPP_NAME, "observable-contracts"))
 
     fun initObservable() {
-        logger.info("Subscribed to contracts status updates")
-        blockProcessor.getCommandsObservable()
+        commandObservableSource.getObservable(Commands.Command.CommandCase.SET_ACCOUNT_DETAIL)
             .observeOn(scheduler)
             .subscribe(this::processCommand)
+        logger.info("Subscribed to contracts status updates")
     }
 
     private fun processCommand(command: Commands.Command) {
-        if (!command.hasSetAccountDetail()) {
-            return
-        }
         val setAccountDetail = command.setAccountDetail
         if (setAccountDetail.accountId != dAppAccountId) {
             return

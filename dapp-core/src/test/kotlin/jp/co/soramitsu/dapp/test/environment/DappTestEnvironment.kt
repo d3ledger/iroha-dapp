@@ -208,13 +208,15 @@ class DappTestEnvironment : Closeable {
 
         val blockProcessor = BlockProcessor(chainListener)
 
+        val observableSource = CommandObservableSource(blockProcessor)
+
         service = DappService(
             irohaAPI,
             irohaKeyPair,
-            CommandObservableSource(blockProcessor),
+            observableSource,
             DefaultCacheManager(),
             ContractsRepositoryMonitor(
-                blockProcessor,
+                observableSource,
                 queryAPI,
                 dappInstanceAccountId,
                 dappRepoAccountId,
