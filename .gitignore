@@ -1,5 +1,10 @@
+.idea/
 .gradle
 /build/
+/*/build
+/*/out
+**/*.iml
+
 
 # Ignore Gradle GUI config
 gradle-app.setting

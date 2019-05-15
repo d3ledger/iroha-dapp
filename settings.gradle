@@ -1,0 +1,12 @@
+/*
+ * Copyright D3 Ledger, Inc. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+rootProject.name = 'iroha-dapp'
+
+include 'dapp-interface'
+project(':dapp-interface').projectDir = 'dapp-interface' as File
+
+include 'dapp-core'
+project(':dapp-core').projectDir = 'dapp-core' as File
