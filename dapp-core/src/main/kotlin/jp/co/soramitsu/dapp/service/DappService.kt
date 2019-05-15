@@ -42,7 +42,7 @@ class DappService(
 
     private fun parseContract(name: String, script: String): Pair<String, AbstractDappScript>? {
         return try {
-            name to parse(Utils.irohaUnEscape(script), irohaAPI, dappKeyPair, cacheManager)
+            name to parse(Utils.irohaUnEscape(script))
         } catch (e: Exception) {
             logger.warn("Couldn't create $name contract from script", e)
             null
@@ -77,6 +77,9 @@ class DappService(
                 safeDelete(contractName)
             }
             val contractObject = contractPair.second
+            contractObject.setIrohaAPI(irohaAPI)
+            contractObject.setKeyPair(dappKeyPair)
+            contractObject.setCacheManager(cacheManager)
             contracts[contractName] = contractObject
             contractObject.commandsToMonitor?.forEach { type ->
                 contractObject.addCommandObservable(observableSource.getObservable(type))

@@ -3,25 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
 import iroha.protocol.Commands
 import jp.co.soramitsu.dapp.AbstractDappScript
-import jp.co.soramitsu.dapp.helper.CacheManager
-import jp.co.soramitsu.iroha.java.IrohaAPI
 import jp.co.soramitsu.iroha.java.Transaction
-
-import java.security.KeyPair
 
 class TestContract extends AbstractDappScript {
 
     private Observable<Commands.Command> observable
 
     private Disposable disposable
-
-    TestContract(IrohaAPI irohaAPI, KeyPair keyPair, CacheManager cacheManager) {
-        super(irohaAPI, keyPair, cacheManager)
-    }
 
     @Override
     Iterable<Commands.Command.CommandCase> getCommandsToMonitor() {

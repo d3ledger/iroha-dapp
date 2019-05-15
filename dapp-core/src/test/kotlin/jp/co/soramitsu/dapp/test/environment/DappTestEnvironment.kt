@@ -10,6 +10,7 @@ import com.google.common.io.Files
 import iroha.protocol.BlockOuterClass
 import iroha.protocol.Endpoint
 import jp.co.soramitsu.crypto.ed25519.Ed25519Sha3
+import jp.co.soramitsu.dapp.block.BlockProcessor
 import jp.co.soramitsu.dapp.cache.DefaultCacheManager
 import jp.co.soramitsu.dapp.config.DAPP_NAME
 import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
@@ -204,13 +205,16 @@ class DappTestEnvironment : Closeable {
             Random().nextLong().toString(),
             createPrettySingleThreadPool(DAPP_NAME, "chain-listener")
         )
+
+        val blockProcessor = BlockProcessor(chainListener)
+
         service = DappService(
             irohaAPI,
             irohaKeyPair,
-            CommandObservableSource(chainListener),
+            CommandObservableSource(blockProcessor),
             DefaultCacheManager(),
             ContractsRepositoryMonitor(
-                chainListener,
+                blockProcessor,
                 queryAPI,
                 dappInstanceAccountId,
                 dappRepoAccountId,
