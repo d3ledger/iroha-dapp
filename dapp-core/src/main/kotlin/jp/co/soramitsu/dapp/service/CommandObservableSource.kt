@@ -11,7 +11,7 @@ import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import iroha.protocol.Commands
 import iroha.protocol.Commands.Command.CommandCase
-import jp.co.soramitsu.dapp.block.BlockProcessor
+import jp.co.soramitsu.dapp.block.CommandsBlockParser
 import jp.co.soramitsu.dapp.config.DAPP_NAME
 import mu.KLogging
 import org.springframework.beans.factory.annotation.Autowired
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component
 @Component
 class CommandObservableSource(
     @Autowired
-    private val blockProcessor: BlockProcessor
+    private val commandsBlockParser: CommandsBlockParser
 ) {
     private val commandsObservables: Map<CommandCase, PublishSubject<Commands.Command>>
     private val sharedObservables: Map<Commands.Command.CommandCase, Observable<Commands.Command>>
@@ -33,7 +33,7 @@ class CommandObservableSource(
         }
         commandsObservables = obsMap
 
-        blockProcessor.getCommandsObservable()
+        commandsBlockParser.getCommandsObservable()
             .observeOn(scheduler)
             .subscribe { command ->
                 logger.info { "Appending command to the ${command.commandCase} observable" }

@@ -5,8 +5,7 @@
 
 package jp.co.soramitsu.dapp.config
 
-import com.d3.commons.config.getConfigFolder
-import com.d3.commons.config.loadRawConfigs
+import com.d3.commons.config.loadRawLocalConfigs
 import com.d3.commons.sidechain.iroha.util.ModelUtil.loadKeypair
 import com.d3.commons.util.createPrettySingleThreadPool
 import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
@@ -20,8 +19,7 @@ import java.net.URI
 @Configuration
 class DappContextConfiguration {
 
-    private val dappConfig =
-        loadRawConfigs(DAPP_NAME, DappConfig::class.java, "${getConfigFolder()}/dapp.properties")
+    private val dappConfig = loadRawLocalConfigs(DAPP_NAME, DappConfig::class.java, "dapp.properties")
 
     @Bean
     fun dappKeyPair() = loadKeypair(dappConfig.pubKeyPath, dappConfig.privKeyPath).get()
