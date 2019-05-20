@@ -16,17 +16,17 @@ import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
-interface CommandsBlockParser {
-    fun getCommandsObservable(): Observable<Commands.Command>
+interface TimedCommandsBlockParser {
+    fun getTimedCommandsObservable(): Observable<Pair<Commands.Command, Long>>
 }
 
 @Component
 final class BlockProcessor(
     @Autowired
     private val chainListener: ReliableIrohaChainListener
-) : CommandsBlockParser {
+) : TimedCommandsBlockParser {
 
-    private val commandsObservable = PublishSubject.create<Commands.Command>()
+    private val timedCommandsObservable = PublishSubject.create<Pair<Commands.Command, Long>>()
     private val scheduler = Schedulers.from(createPrettySingleThreadPool(DAPP_NAME, "block-processor"))
 
     init {
@@ -37,11 +37,18 @@ final class BlockProcessor(
         block.blockV1.payload.transactionsList
             .forEach { transaction ->
                 transaction.payload.reducedPayload.commandsList.stream()
-                    .forEach(commandsObservable::onNext)
+                    .forEach { command ->
+                        timedCommandsObservable.onNext(
+                            Pair(
+                                command,
+                                transaction.payload.reducedPayload.createdTime
+                            )
+                        )
+                    }
             }
     }
 
-    override fun getCommandsObservable(): Observable<Commands.Command> {
-        return commandsObservable
+    override fun getTimedCommandsObservable(): Observable<Pair<Commands.Command, Long>> {
+        return timedCommandsObservable
     }
 }
