@@ -5,10 +5,11 @@
 
 package jp.co.soramitsu.dapp.config
 
+import com.d3.commons.config.RMQConfig
 import com.d3.commons.config.loadRawLocalConfigs
+import com.d3.commons.sidechain.iroha.ReliableIrohaChainListener
 import com.d3.commons.sidechain.iroha.util.ModelUtil.loadKeypair
 import com.d3.commons.util.createPrettySingleThreadPool
-import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
 import jp.co.soramitsu.iroha.java.IrohaAPI
 import jp.co.soramitsu.iroha.java.QueryAPI
 import mu.KLogging
@@ -20,6 +21,7 @@ import java.net.URI
 class DappContextConfiguration {
 
     private val dappConfig = loadRawLocalConfigs(DAPP_NAME, DappConfig::class.java, "dapp.properties")
+    private val rmqConfig = loadRawLocalConfigs(DAPP_NAME, RMQConfig::class.java, "rmq.properties")
 
     @Bean
     fun dappKeyPair() = loadKeypair(dappConfig.pubKeyPath, dappConfig.privKeyPath).get()
@@ -37,9 +39,7 @@ class DappContextConfiguration {
 
     @Bean
     fun chainListener() = ReliableIrohaChainListener(
-        dappConfig.rmqHost,
-        dappConfig.rmqPort,
-        dappConfig.rmqExchange,
+        rmqConfig,
         dappConfig.queue,
         createPrettySingleThreadPool(DAPP_NAME, "chain-listener")
     )
