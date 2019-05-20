@@ -90,7 +90,9 @@ class DappService(
                 disposables.add(
                     observableSource.getObservable(type)
                         .observeOn(scheduler)
-                        .subscribe(contractObject::processCommand)
+                        .subscribe { (command, time) ->
+                            contractObject.processCommand(command, time)
+                        }
                 )
             }
             contracts[contractName] = contractObject

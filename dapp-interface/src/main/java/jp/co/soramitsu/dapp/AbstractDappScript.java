@@ -30,7 +30,7 @@ public abstract class AbstractDappScript {
     /**
      * Calls a logic of the contract
      */
-    public abstract void processCommand(Commands.Command command);
+    public abstract void processCommand(Commands.Command command, long createdTime);
 
     public void setIrohaAPI(IrohaAPI irohaAPI) {
         this.irohaAPI = irohaAPI;

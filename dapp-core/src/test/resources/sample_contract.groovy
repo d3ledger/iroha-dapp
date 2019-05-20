@@ -15,10 +15,10 @@ class TestContract extends AbstractDappScript {
     }
 
     @Override
-    void processCommand(Commands.Command command) {
+    void processCommand(Commands.Command command, long createdTime) {
         if (getCommandsToMonitor().contains(command.commandCase)) {
             irohaAPI.transactionSync(
-                    Transaction.builder("dapprepo@dapp")
+                    Transaction.builder("dapprepo@dapp", createdTime)
                             .addAssetQuantity("asset#dapp", "1")
                             .sign(keyPair)
                             .build()

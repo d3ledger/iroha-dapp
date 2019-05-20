@@ -38,7 +38,9 @@ class ContractsRepositoryMonitor(
     fun initObservable() {
         commandObservableSource.getObservable(Commands.Command.CommandCase.SET_ACCOUNT_DETAIL)
             .observeOn(scheduler)
-            .subscribe(this::processCommand)
+            .subscribe { (command, _) ->
+                processCommand(command)
+            }
         logger.info("Subscribed to contracts status updates")
     }
 
