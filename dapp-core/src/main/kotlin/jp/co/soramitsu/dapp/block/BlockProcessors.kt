@@ -5,14 +5,15 @@
 
 package jp.co.soramitsu.dapp.block
 
+import com.d3.commons.sidechain.iroha.ReliableIrohaChainListener
 import com.d3.commons.util.createPrettySingleThreadPool
+import com.github.kittinunf.result.map
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import iroha.protocol.BlockOuterClass
 import iroha.protocol.Commands
 import jp.co.soramitsu.dapp.config.DAPP_NAME
-import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
@@ -30,7 +31,12 @@ final class BlockProcessor(
     private val scheduler = Schedulers.from(createPrettySingleThreadPool(DAPP_NAME, "block-processor"))
 
     init {
-        chainListener.processIrohaBlocks(this::processBlock, scheduler)
+        chainListener.getBlockObservable().map { observable ->
+            observable.observeOn(scheduler).subscribe { (block, _) ->
+                processBlock(block)
+            }
+        }
+        chainListener.listen()
     }
 
     private fun processBlock(block: BlockOuterClass.Block) {

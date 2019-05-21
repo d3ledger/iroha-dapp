@@ -5,6 +5,8 @@
 
 package jp.co.soramitsu.dapp.test.environment
 
+import com.d3.commons.config.RMQConfig
+import com.d3.commons.sidechain.iroha.ReliableIrohaChainListener
 import com.d3.commons.util.createPrettySingleThreadPool
 import com.google.common.io.Files
 import iroha.protocol.BlockOuterClass
@@ -13,7 +15,6 @@ import jp.co.soramitsu.crypto.ed25519.Ed25519Sha3
 import jp.co.soramitsu.dapp.block.BlockProcessor
 import jp.co.soramitsu.dapp.cache.DefaultCacheManager
 import jp.co.soramitsu.dapp.config.DAPP_NAME
-import jp.co.soramitsu.dapp.listener.ReliableIrohaChainListener
 import jp.co.soramitsu.dapp.service.CommandObservableSource
 import jp.co.soramitsu.dapp.service.ContractsRepositoryMonitor
 import jp.co.soramitsu.dapp.service.DappService
@@ -199,9 +200,11 @@ class DappTestEnvironment : Closeable {
         queryAPI = QueryAPI(irohaAPI, dappInstanceAccountId, irohaKeyPair)
 
         val chainListener = ReliableIrohaChainListener(
-            rmqHost,
-            rmqPort,
-            rmqExchange,
+            object : RMQConfig {
+                override val host = rmqHost
+                override val irohaExchange = rmqExchange
+                override val port = rmqPort
+            },
             Random().nextLong().toString(),
             createPrettySingleThreadPool(DAPP_NAME, "chain-listener")
         )
