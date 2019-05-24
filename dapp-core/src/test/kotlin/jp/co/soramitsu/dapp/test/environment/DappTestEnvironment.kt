@@ -26,11 +26,6 @@ import jp.co.soramitsu.iroha.java.detail.Const
 import jp.co.soramitsu.iroha.testcontainers.IrohaContainer
 import jp.co.soramitsu.iroha.testcontainers.PeerConfig
 import jp.co.soramitsu.iroha.testcontainers.detail.GenesisBlockBuilder
-import org.apache.commons.configuration2.FileBasedConfiguration
-import org.apache.commons.configuration2.PropertiesConfiguration
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder
-import org.apache.commons.configuration2.builder.fluent.Parameters
-import org.testcontainers.containers.BindMode
 import org.testcontainers.containers.FixedHostPortGenericContainer
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.InternetProtocol
@@ -38,8 +33,8 @@ import java.io.Closeable
 import java.io.File
 import java.net.URI
 import java.nio.charset.Charset
+import java.security.KeyPair
 import java.util.*
-import javax.xml.bind.DatatypeConverter
 
 
 class KGenericFixedContainer(imageName: String) :
@@ -50,16 +45,22 @@ private const val DEFAULT_IROHA_PORT = 50051
 const val dappDomain = "dapp"
 const val dappInstanceAccountId = "dapp1" + Const.accountIdDelimiter + dappDomain
 const val dappRepoAccountId = "dapprepo" + Const.accountIdDelimiter + dappDomain
-val irohaKeyPair = Ed25519Sha3().generateKeypair()!!
+const val exchangerAccountId = "exchanger" + Const.accountIdDelimiter + dappDomain
+val irohaKeyPair: KeyPair = Ed25519Sha3().generateKeypair()
+const val rmqContainerName = "rmq"
+const val irohaContainerName = "iroha"
 val rmq = KGenericFixedContainer("rabbitmq:3-management").withExposedPorts(DEFAULT_RMQ_PORT)
     .withFixedExposedPort(DEFAULT_RMQ_PORT, DEFAULT_RMQ_PORT)
-    .withCreateContainerCmdModifier { it.withName("rmq") }!!
+    .withCreateContainerCmdModifier { it.withName(rmqContainerName) }!!
 val iroha = IrohaContainer().withPeerConfig(peerConfig)!!
 var postgresDockerContainer: GenericContainer<*> = GenericContainer<Nothing>()
 var irohaContainer: GenericContainer<*> = GenericContainer<Nothing>()
-val chainAdapter = KGenericFixedContainer("nexus.iroha.tech:19002/d3-deploy/chain-adapter:1.0.0_rc5")
+val chainAdapter = KGenericFixedContainer("nexus.iroha.tech:19002/d3-deploy/chain-adapter:1.0.0")
 const val rmqExchange = "iroha"
-const val resourcesLocation = "src/test/resources"
+const val testContractName = "testcontract"
+const val exchangerContractName = "exchangercontract"
+const val assetId = "asset#$dappDomain"
+const val anotherAssetId = "anotherasset#$dappDomain"
 
 val genesisBlock: BlockOuterClass.Block
     get() {
@@ -76,8 +77,12 @@ val genesisBlock: BlockOuterClass.Block
                         dappRepoAccountId,
                         irohaKeyPair.public
                     )
+                    .createAccount(
+                        exchangerAccountId,
+                        irohaKeyPair.public
+                    )
                     .setAccountDetail(
-                        dappRepoAccountId, "testcontract", Utils.irohaEscape(
+                        dappRepoAccountId, testContractName, Utils.irohaEscape(
                             Files
                                 .toString(
                                     File("src/test/resources/sample_contract.groovy"),
@@ -85,7 +90,18 @@ val genesisBlock: BlockOuterClass.Block
                                 )
                         )
                     )
+                    .setAccountDetail(
+                        dappRepoAccountId, exchangerContractName, Utils.irohaEscape(
+                            Files
+                                .toString(
+                                    File("src/test/resources/exchanger_contract.groovy"),
+                                    Charset.defaultCharset()
+                                )
+                        )
+                    )
                     .createAsset("asset", dappDomain, 2)
+                    .createAsset("anotherasset", dappDomain, 5)
+                    .addAssetQuantity(anotherAssetId, "2")
                     .build()
                     .build()
             )
@@ -102,36 +118,31 @@ class DappTestEnvironment : Closeable {
     lateinit var service: DappService
     lateinit var irohaAPI: IrohaAPI
     lateinit var queryAPI: QueryAPI
-    private lateinit var rmqHost: String
     private var rmqPort: Int = 0
-
-    private val pubKeyFile = File("$resourcesLocation/pub.key")
-    private val privKeyFile = File("$resourcesLocation/priv.key")
-    private val lastBlockFile = File("$resourcesLocation/last_block.txt")
 
     val keyPair = irohaKeyPair
 
-    fun enableTestContract() {
+    fun enableContract(contractName: String) {
         val response = irohaAPI.transaction(
             Transaction.builder(dappRepoAccountId)
-                .setAccountDetail(dappInstanceAccountId, "testcontract", "true")
+                .setAccountDetail(dappInstanceAccountId, contractName, "true")
                 .sign(irohaKeyPair)
                 .build()
         ).blockingLast()
         if (response.txStatus != Endpoint.TxStatus.COMMITTED) {
-            throw RuntimeException("Enabling of test contract failed")
+            throw RuntimeException("Enabling of $contractName contract failed")
         }
     }
 
-    fun disableTestContract() {
+    fun disableContract(contractName: String) {
         val response = irohaAPI.transaction(
             Transaction.builder(dappRepoAccountId)
-                .setAccountDetail(dappInstanceAccountId, "testcontract", "false")
+                .setAccountDetail(dappInstanceAccountId, contractName, "false")
                 .sign(irohaKeyPair)
                 .build()
         ).blockingLast()
         if (response.txStatus != Endpoint.TxStatus.COMMITTED) {
-            throw RuntimeException("Disabling of test contract failed")
+            throw RuntimeException("Disabling of $contractName contract failed")
         }
     }
 
@@ -140,8 +151,9 @@ class DappTestEnvironment : Closeable {
         iroha.configure()
         postgresDockerContainer = iroha.postgresDockerContainer
         postgresDockerContainer.start()
-        irohaContainer = iroha.irohaDockerContainer.withCreateContainerCmdModifier { it.withName("iroha") }
-            .withExposedPorts(DEFAULT_IROHA_PORT)
+        irohaContainer =
+                iroha.irohaDockerContainer.withCreateContainerCmdModifier { it.withName(irohaContainerName) }
+                    .withExposedPorts(DEFAULT_IROHA_PORT)
         irohaContainer.getPortBindings().add(
             String.format(
                 "%d:%d/%s",
@@ -152,56 +164,59 @@ class DappTestEnvironment : Closeable {
         )
         irohaContainer.start()
 
-        val host = irohaContainer.getContainerIpAddress()
-        val port = irohaContainer.getMappedPort(DEFAULT_IROHA_PORT)!!
+        val irohaPort = irohaContainer.getMappedPort(DEFAULT_IROHA_PORT)!!
 
-        irohaAPI = IrohaAPI(URI("grpc", null, host, port, null, null, null))
+        irohaAPI = IrohaAPI(
+            URI(
+                "grpc",
+                null,
+                irohaContainer.getContainerIpAddress(),
+                irohaPort,
+                null,
+                null,
+                null
+            )
+        )
 
         rmq.withNetwork(iroha.network).start()
-        rmqHost = rmq.containerIpAddress
         rmqPort = rmq.getMappedPort(DEFAULT_RMQ_PORT)
 
-        val params = Parameters()
-        val builder =
-            FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration::class.java)
-                .configure(
-                    params.properties()
-                        .setFileName("$resourcesLocation/rmq.properties")
-                )
-        val config = builder.configuration
-        config.setProperty("rmq.iroha.port", iroha.toriiAddress.port)
-        config.setProperty("rmq.irohaCredential.accountId", dappInstanceAccountId)
-        builder.save()
-
-        Files.write(
-            DatatypeConverter.printHexBinary(keyPair.public.encoded),
-            pubKeyFile,
-            Charsets.UTF_8
-        )
-        Files.write(
-            DatatypeConverter.printHexBinary(keyPair.private.encoded),
-            privKeyFile,
-            Charsets.UTF_8
-        )
-        Files.write(
-            "0",
-            lastBlockFile,
-            Charsets.UTF_8
-        )
-
-        chainAdapter.addFileSystemBind(
-            resourcesLocation,
-            "/opt/chain-adapter/configs",
-            BindMode.READ_WRITE
-        )
-
-        chainAdapter.withNetwork(iroha.network).start()
+        chainAdapter.withNetwork(iroha.network)
+            .withEnv(
+                "CHAIN-ADAPTER_RMQHOST",
+                rmqContainerName
+            )
+            .withEnv(
+                "CHAIN-ADAPTER_IROHA_HOSTNAME",
+                irohaContainerName
+            )
+            .withEnv(
+                "CHAIN-ADAPTER_IROHACREDENTIAL_ACCOUNTID",
+                dappInstanceAccountId
+            )
+            .withEnv(
+                "CHAIN-ADAPTER_IROHACREDENTIAL_PUBKEY",
+                Utils.toHex(keyPair.public.encoded).toLowerCase()
+            )
+            .withEnv(
+                "CHAIN-ADAPTER_IROHACREDENTIAL_PRIVKEY",
+                Utils.toHex(keyPair.private.encoded).toLowerCase()
+            )
+            .withEnv(
+                "CHAIN-ADAPTER_DROPLASTREADBLOCK",
+                "true"
+            )
+            .withEnv(
+                "WAIT_HOSTS",
+                "$irohaContainerName:$irohaPort, $rmqContainerName:$rmqPort"
+            )
+            .start()
 
         queryAPI = QueryAPI(irohaAPI, dappInstanceAccountId, irohaKeyPair)
 
         val chainListener = ReliableIrohaChainListener(
             object : RMQConfig {
-                override val host = rmqHost
+                override val host = rmq.containerIpAddress
                 override val irohaExchange = rmqExchange
                 override val port = rmqPort
             },
@@ -227,6 +242,14 @@ class DappTestEnvironment : Closeable {
             )
         )
 
+        irohaAPI.transactionSync(
+            Transaction.builder(exchangerAccountId)
+                .addAssetQuantity(assetId, "100000")
+                .addAssetQuantity(anotherAssetId, "100000")
+                .sign(irohaKeyPair)
+                .build()
+        )
+
         // To be sure the service is initialized
         Thread.sleep(1000)
     }
@@ -238,8 +261,5 @@ class DappTestEnvironment : Closeable {
         postgresDockerContainer.stop()
         iroha.conf.deleteTempDir()
         rmq.stop()
-        pubKeyFile.delete()
-        privKeyFile.delete()
-        lastBlockFile.delete()
     }
 }
