@@ -61,7 +61,7 @@ class ExchangerContract extends AbstractDappScript {
             final String destAccountId = transfer.srcAccountId
             logger.info("Got a conversion request from $destAccountId: $amount $sourceAsset to $targetAsset.")
             try {
-                final String relevantAmount = calculateRelevantAmount(sourceAsset, targetAsset, new BigDecimal(amount))
+                final String relevantAmount = calculateRelevantAmount(sourceAsset, targetAsset, Double.parseDouble(amount))
 
                 def response = irohaAPI.transaction(
                         Transaction.builder(exchangerAccountId)
@@ -101,10 +101,10 @@ class ExchangerContract extends AbstractDappScript {
         }
     }
 
-    private String calculateRelevantAmount(String sourceAsset, String targetAsset, BigDecimal amount) {
+    private String calculateRelevantAmount(String sourceAsset, String targetAsset, double amount) {
         def sourceAssetBalance = getExchangerBalance(sourceAsset, amount)
         def targetAssetBalance = getExchangerBalance(targetAsset, 0)
-        def amountMinusFee = (amount - amount * FEE_RATIO).toDouble()
+        def amountMinusFee = amount * (1 - FEE_RATIO)
 
         def precision = getAssetPrecision(targetAsset)
 
@@ -122,8 +122,8 @@ class ExchangerContract extends AbstractDappScript {
         return respectPrecision
     }
 
-    private BigDecimal getExchangerBalance(String assetId, double offset) {
-        return (new BigDecimal(
+    private double getExchangerBalance(String assetId, double offset) {
+        return Double.parseDouble(
                 irohaAPI.query(
                         Query.builder(exchangerAccountId, counter.andIncrement)
                                 .getAccountAssets(exchangerAccountId)
@@ -134,7 +134,7 @@ class ExchangerContract extends AbstractDappScript {
                         .map { asset -> asset.balance }
                         .findAny()
                         .orElse("0")
-        ) - new BigDecimal(offset)).toDouble()
+        ) - offset
     }
 
     private int getAssetPrecision(String asset) {
