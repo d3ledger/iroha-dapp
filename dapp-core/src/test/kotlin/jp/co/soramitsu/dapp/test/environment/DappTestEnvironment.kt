@@ -31,7 +31,6 @@ import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.InternetProtocol
 import java.io.Closeable
 import java.io.File
-import java.net.URI
 import java.nio.charset.Charset
 import java.security.KeyPair
 import java.util.*
@@ -167,15 +166,8 @@ class DappTestEnvironment : Closeable {
         val irohaPort = irohaContainer.getMappedPort(DEFAULT_IROHA_PORT)!!
 
         irohaAPI = IrohaAPI(
-            URI(
-                "grpc",
-                null,
-                irohaContainer.getContainerIpAddress(),
-                irohaPort,
-                null,
-                null,
-                null
-            )
+            irohaContainer.getContainerIpAddress(),
+            irohaPort
         )
 
         rmq.withNetwork(iroha.network).start()
