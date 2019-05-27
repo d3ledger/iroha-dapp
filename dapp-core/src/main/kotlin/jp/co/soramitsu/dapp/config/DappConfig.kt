@@ -15,17 +15,11 @@ interface DappConfig {
 
     val repositorySetter: String
 
-    val pubKeyPath: String
+    val pubKey: String
 
-    val privKeyPath: String
+    val privKey: String
 
     val irohaUrl: String
-
-    val rmqHost: String
-
-    val rmqPort: Int
-
-    val rmqExchange: String
 
     val queue: String
 }
