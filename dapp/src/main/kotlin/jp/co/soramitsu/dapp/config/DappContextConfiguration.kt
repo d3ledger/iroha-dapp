@@ -12,7 +12,6 @@ import com.d3.commons.util.createPrettySingleThreadPool
 import jp.co.soramitsu.iroha.java.IrohaAPI
 import jp.co.soramitsu.iroha.java.QueryAPI
 import jp.co.soramitsu.iroha.java.Utils
-import mu.KLogging
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.net.URI
@@ -53,8 +52,4 @@ class DappContextConfiguration {
     @Bean
     fun repositorySetterId() = dappConfig.repositorySetter
 
-    /**
-     * Logger
-     */
-    companion object : KLogging()
 }

@@ -8,5 +8,5 @@ rootProject.name = 'iroha-dapp'
 include 'dapp-interface'
 project(':dapp-interface').projectDir = 'dapp-interface' as File
 
-include 'dapp-core'
-project(':dapp-core').projectDir = 'dapp-core' as File
+include 'dapp'
+project(':dapp').projectDir = 'dapp' as File
