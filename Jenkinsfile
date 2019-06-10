@@ -26,7 +26,7 @@ pipeline {
           steps {
             script {
               def scmVars = checkout scm
-               //if (env.BRANCH_NAME ==~ /(master|develop|reserved)/ || env.TAG_NAME) {
+               if (env.BRANCH_NAME ==~ /(master|develop|reserved)/ || env.TAG_NAME) {
                 withCredentials([usernamePassword(credentialsId: 'nexus-d3-docker', usernameVariable: 'login', passwordVariable: 'password')]) {
 
                   TAG = env.TAG_NAME ? env.TAG_NAME : env.BRANCH_NAME
@@ -36,12 +36,12 @@ pipeline {
                   " -e DOCKER_REGISTRY_URL='https://nexus.iroha.tech:19002'"+
                   " -e DOCKER_REGISTRY_USERNAME='${login}'"+
                   " -e DOCKER_REGISTRY_PASSWORD='${password}'"+
-                  " -e TAG='test'") {
+                  " -e TAG='${TAG}'") {
                     sh "gradle shadowJar"
                     sh "gradle dockerPush"
                   }
                  }
-              //}
+              }
             }
           }
         }
