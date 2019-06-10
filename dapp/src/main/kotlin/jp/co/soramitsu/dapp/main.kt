@@ -20,9 +20,7 @@ class DappApplication
 
 fun main(args: Array<String>) {
     Result.of {
-        val context = AnnotationConfigApplicationContext()
-        context.register(DappApplication::class.java)
-        context.refresh()
+        AnnotationConfigApplicationContext(DappApplication::class.java)
     }.failure { ex ->
         logger.error("Dapp exited with an exception", ex)
         System.exit(1)
