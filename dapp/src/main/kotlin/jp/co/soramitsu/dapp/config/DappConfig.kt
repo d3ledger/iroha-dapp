@@ -22,4 +22,6 @@ interface DappConfig {
     val irohaUrl: String
 
     val queue: String
+
+    val healthCheckPort: Int
 }
