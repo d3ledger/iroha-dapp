@@ -7,6 +7,7 @@ package jp.co.soramitsu.dapp.config
 
 import com.d3.commons.config.RMQConfig
 import com.d3.commons.config.loadRawLocalConfigs
+import com.d3.commons.healthcheck.HealthCheckEndpoint
 import com.d3.commons.sidechain.iroha.ReliableIrohaChainListener
 import com.d3.commons.util.createPrettySingleThreadPool
 import jp.co.soramitsu.iroha.java.IrohaAPI
@@ -51,5 +52,8 @@ class DappContextConfiguration {
 
     @Bean
     fun repositorySetterId() = dappConfig.repositorySetter
+
+    @Bean
+    fun healthCheckEndpoint()=HealthCheckEndpoint(dappConfig.healthCheckPort)
 
 }
