@@ -12,7 +12,7 @@ pipeline {
                     docker.image("gradle:5.4-jdk8-slim")
                             .inside("-v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/tmp") {
                         sh "gradle test --info"
-                        sh "gradle d3TestReport"
+                        sh "gradle d3TestReport" 
                     }
                     publishHTML (target: [
                         allowMissing: false,
