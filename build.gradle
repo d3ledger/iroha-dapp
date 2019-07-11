@@ -69,3 +69,7 @@ task codeCoverageReport(type: JacocoReport) {
 codeCoverageReport.dependsOn {
     subprojects*.test
 }
+
+project.afterEvaluate {
+    test.finalizedBy(d3TestReport)
+}
